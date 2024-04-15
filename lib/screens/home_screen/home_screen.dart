@@ -24,6 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<int> items = [];
 
+  bool _searchLoading = false;
+
   int get totalPages => (_totalPokemon / _itemsPerPage).ceil();
   bool _loading = false;
 
@@ -87,43 +89,50 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         child: Scaffold(
           extendBodyBehindAppBar: false,
-          body: CustomScrollView(
-            slivers: <Widget>[
-              homeScreenAppBar(),
-              SliverPersistentHeader(
-                pinned: true,
-                floating: false,
-                delegate: MyHeaderDelegate(
-                    goToNextPage: goToNextPage,
-                    goToPreviousPage: goToPreviousPage,
-                    currentIndex: _currentIndex),
-              ),
-              SliverAnimatedList(
-                initialItemCount: 1,
-                itemBuilder: (BuildContext context, int index,
-                    Animation<double> animation) {
-                  return Stack(
-                    children: [
-                      stackBackground(),
-                      _loading == true
-                          ? SizedBox(
-                              height: Adaptive.h(50),
-                              child: Center(
-                                child: loadingBar(),
-                              ))
-                          : Column(
-                              children: List.generate(
-                                items.length,
-                                (index) => PokemonItem(
-                                  index: items[index],
+          body: LoadingOverlay(
+            isLoading: _searchLoading,
+            child: CustomScrollView(
+              slivers: <Widget>[
+                homeScreenAppBar(),
+                SliverPersistentHeader(
+                  pinned: true,
+                  floating: false,
+                  delegate: MyHeaderDelegate(
+                      goToNextPage: goToNextPage,
+                      goToPreviousPage: goToPreviousPage,
+                      currentIndex: _currentIndex, loadingCompleteAction: () { setState(() {
+                    _searchLoading = false;
+                      }); }, loadingAction: () { setState(() {
+                        _searchLoading = true;
+                      }); }),
+                ),
+                SliverAnimatedList(
+                  initialItemCount: 1,
+                  itemBuilder: (BuildContext context, int index,
+                      Animation<double> animation) {
+                    return Stack(
+                      children: [
+                        stackBackground(),
+                        _loading == true
+                            ? SizedBox(
+                                height: Adaptive.h(50),
+                                child: Center(
+                                  child: loadingBar(),
+                                ))
+                            : Column(
+                                children: List.generate(
+                                  items.length,
+                                  (index) => PokemonItem(
+                                    index: items[index],
+                                  ),
                                 ),
                               ),
-                            ),
-                    ],
-                  );
-                },
-              ),
-            ],
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -298,11 +307,14 @@ class MyHeaderDelegate extends SliverPersistentHeaderDelegate {
   final VoidCallback goToNextPage, goToPreviousPage;
   final int currentIndex;
   final TextEditingController _controller = TextEditingController();
+  final VoidCallback loadingCompleteAction, loadingAction;
 
   MyHeaderDelegate({
     required this.goToNextPage,
     required this.goToPreviousPage,
     required this.currentIndex,
+    required this.loadingCompleteAction,
+    required this.loadingAction,
   });
 
   Future<bool> returnFalseValue() async {
@@ -335,30 +347,31 @@ class MyHeaderDelegate extends SliverPersistentHeaderDelegate {
                   controller: _controller,
                   textInputAction: TextInputAction.search,
                   onFieldSubmitted: (value) async {
-                    showLoadingDialogBox(context: context);
+                   loadingAction();
                     if (value.length >= 3) {
                       await returnSearchPokemonDetails(pokemonName: value)
                           .then((pokemon) {
-                        Navigator.pop(context);
+                        loadingCompleteAction();
                         if (pokemon != 'Not Found') {
                           final pokemonDetails =
-                          PokemonModel.fromJson(jsonDecode(pokemon));
+                              PokemonModel.fromJson(jsonDecode(pokemon));
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => PokemonDetailsScreen(
                                   pokemonModel: pokemonDetails,
                                   imageUrl:
-                                  'https://unpkg.com/pokeapi-sprites@2.0.2/sprites/pokemon/other/dream-world/${pokemonDetails.id}.svg'),
+                                      'https://unpkg.com/pokeapi-sprites@2.0.2/sprites/pokemon/other/dream-world/${pokemonDetails.id}.svg'),
                             ),
                           );
                         } else {
-                          Navigator.pop(context);
+                       loadingCompleteAction();
                           Fluttertoast.showToast(
                               msg:
-                              'Unable to find $value pokemon in the database');
+                                  'Unable to find $value pokemon in the database');
                         }
                       }).onError((error, stackTrace) async {
+                        loadingCompleteAction();
                         Fluttertoast.showToast(msg: error.toString());
                         return null;
                       });
@@ -368,11 +381,11 @@ class MyHeaderDelegate extends SliverPersistentHeaderDelegate {
                     prefixIcon: InkWell(
                       onTap: () async {
                         String value = _controller.text;
-                        showLoadingDialogBox(context: context);
+                        loadingAction();
                         if (value.length >= 3) {
                           await returnSearchPokemonDetails(pokemonName: value)
                               .then((pokemon) {
-                            Navigator.pop(context);
+                            loadingCompleteAction();
                             if (pokemon != 'Not Found') {
                               final pokemonDetails =
                               PokemonModel.fromJson(jsonDecode(pokemon));
@@ -386,12 +399,13 @@ class MyHeaderDelegate extends SliverPersistentHeaderDelegate {
                                 ),
                               );
                             } else {
-                              Navigator.pop(context);
+                              loadingCompleteAction();
                               Fluttertoast.showToast(
                                   msg:
                                   'Unable to find $value pokemon in the database');
                             }
                           }).onError((error, stackTrace) async {
+                            loadingCompleteAction();
                             Fluttertoast.showToast(msg: error.toString());
                             return null;
                           });

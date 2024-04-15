@@ -253,3 +253,31 @@ Future<void> showLoadingDialogBox({required BuildContext context}) async {
       }
   );
 }
+class LoadingOverlay extends StatelessWidget {
+  final bool isLoading;
+  final Widget child;
+
+ const LoadingOverlay({super.key, required this.isLoading, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        child,
+        isLoading ? _buildOverlayContent(context) : Container(),
+      ],
+    );
+  }
+
+  Widget _buildOverlayContent(BuildContext context) {
+    return Stack(
+      children: [
+        const Opacity(
+          opacity: .8,
+          child: ModalBarrier(dismissible: false, color: Colors.grey),
+        ),
+        Center(child: loadingBar())
+      ],
+    );
+  }
+}
