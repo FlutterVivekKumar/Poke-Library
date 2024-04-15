@@ -44,6 +44,7 @@ dependencies:
   xml:
   path_provider:
   flutter_neumorphic:
+  fluttertoast: ^8.2.5
 
 
 dev_dependencies:

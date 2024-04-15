@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_sizer/flutter_sizer.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart';
 import 'package:pokemon_library/extra/colors.dart';
 import 'package:pokemon_library/extra/extra_functions.dart';
@@ -296,16 +297,21 @@ class _PokemonItemState extends State<PokemonItem> {
 class MyHeaderDelegate extends SliverPersistentHeaderDelegate {
   final VoidCallback goToNextPage, goToPreviousPage;
   final int currentIndex;
+  final TextEditingController _controller = TextEditingController();
 
-  const MyHeaderDelegate(
-      {required this.goToNextPage,
-      required this.goToPreviousPage,
-      required this.currentIndex});
+  MyHeaderDelegate({
+    required this.goToNextPage,
+    required this.goToPreviousPage,
+    required this.currentIndex,
+  });
+
+  Future<bool> returnFalseValue() async {
+    return false;
+  }
 
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    // TODO: implement build
     return SizedBox(
       height: 180,
       child: Column(
@@ -326,8 +332,75 @@ class MyHeaderDelegate extends SliverPersistentHeaderDelegate {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4),
                 child: TextFormField(
+                  controller: _controller,
+                  textInputAction: TextInputAction.search,
+                  onFieldSubmitted: (value) async {
+                    showLoadingDialogBox(context: context);
+                    if (value.length >= 3) {
+                      await returnSearchPokemonDetails(pokemonName: value)
+                          .then((pokemon) {
+                        Navigator.pop(context);
+                        if (pokemon != 'Not Found') {
+                          final pokemonDetails =
+                          PokemonModel.fromJson(jsonDecode(pokemon));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PokemonDetailsScreen(
+                                  pokemonModel: pokemonDetails,
+                                  imageUrl:
+                                  'https://unpkg.com/pokeapi-sprites@2.0.2/sprites/pokemon/other/dream-world/${pokemonDetails.id}.svg'),
+                            ),
+                          );
+                        } else {
+                          Navigator.pop(context);
+                          Fluttertoast.showToast(
+                              msg:
+                              'Unable to find $value pokemon in the database');
+                        }
+                      }).onError((error, stackTrace) async {
+                        Fluttertoast.showToast(msg: error.toString());
+                        return null;
+                      });
+                    }
+                  },
                   decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search),
+                    prefixIcon: InkWell(
+                      onTap: () async {
+                        String value = _controller.text;
+                        showLoadingDialogBox(context: context);
+                        if (value.length >= 3) {
+                          await returnSearchPokemonDetails(pokemonName: value)
+                              .then((pokemon) {
+                            Navigator.pop(context);
+                            if (pokemon != 'Not Found') {
+                              final pokemonDetails =
+                              PokemonModel.fromJson(jsonDecode(pokemon));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PokemonDetailsScreen(
+                                      pokemonModel: pokemonDetails,
+                                      imageUrl:
+                                      'https://unpkg.com/pokeapi-sprites@2.0.2/sprites/pokemon/other/dream-world/${pokemonDetails.id}.svg'),
+                                ),
+                              );
+                            } else {
+                              Navigator.pop(context);
+                              Fluttertoast.showToast(
+                                  msg:
+                                  'Unable to find $value pokemon in the database');
+                            }
+                          }).onError((error, stackTrace) async {
+                            Fluttertoast.showToast(msg: error.toString());
+                            return null;
+                          });
+                        }
+                      },
+                      child: const Icon(
+                        Icons.search,
+                      ),
+                    ),
                     prefixIconColor: Colors.grey,
                     hintText: 'Enter pokemon name',
                     hintStyle: hintStyle(),

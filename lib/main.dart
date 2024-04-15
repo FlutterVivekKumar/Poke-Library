@@ -17,16 +17,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FlutterSizer(
-      builder:(size,orientation,screenType)=> MaterialApp(
+      builder: (size, orientation, screenType) => MaterialApp(
         title: 'Flutter Demo',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-
           scaffoldBackgroundColor: scaffoldBackgroundColor,
           primaryColor: primaryColor,
           // fontFamily: 'Inter Regular'
         ),
-        home: const SafeArea(child: MainPage()),
+        home: SafeArea(
+          child: MainPage(),
+        ),
       ),
     );
   }

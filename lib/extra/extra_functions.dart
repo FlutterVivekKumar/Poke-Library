@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -14,6 +15,7 @@ import 'package:palette_generator/palette_generator.dart';
 import 'package:pokemon_library/extra/colors.dart';
 import 'dart:ui' as ui;
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:pokemon_library/models/pokemon_details_model.dart';
 import 'package:xml/xml.dart';
 /*----------------Constants----------------*/
 const mainScreenTitle =
@@ -225,3 +227,29 @@ TextStyle hintStyle() => TextStyle(
     fontFamily: 'Sofia Sans Condensed Regular',
     fontWeight: FontWeight.normal,
     color: hintColor);
+/*---------------APIS----------------------------*/
+Future<String> returnSearchPokemonDetails({required String pokemonName}) async {
+  final url =
+  Uri.parse('https://pokeapi.co/api/v2/pokemon/$pokemonName');
+
+  final response = await get(url);
+
+  return response.body;
+}
+
+/*--------------Loading Dialog Box---------------*/
+Future<void> showLoadingDialogBox({required BuildContext context}) async {
+  showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: loadingBar(),
+          ),
+        );
+      }
+  );
+}
